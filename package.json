@@ -1,0 +1,31 @@
+{
+  "name": "collagestates",
+  "version": "1.0.0",
+  "description": "Online collage tool with AI-generated backgrounds and real-time collaboration",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "collage",
+    "ai",
+    "replicate",
+    "socket.io",
+    "canvas"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "replicate": "^0.25.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+

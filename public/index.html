@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollageStates - 在线拼贴工具</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>CollageStates</h1>
+            <div class="user-info">
+                <input type="text" id="nickname-input" placeholder="输入昵称" maxlength="20">
+                <input type="color" id="color-picker" value="#3498db">
+                <button id="connect-btn" class="btn btn-primary">连接</button>
+                <span id="connection-status" class="status-indicator">未连接</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="tool-section">
+                    <h3>背景</h3>
+                    <button id="generate-background-btn" class="btn btn-secondary">
+                        <span>🎨</span> 生成背景
+                    </button>
+                    <div id="background-loading" class="loading" style="display: none;">
+                        生成中...
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>素材库</h3>
+                    <button id="upload-material-btn" class="btn btn-secondary">
+                        <span>📤</span> 上传素材
+                    </button>
+                    <input type="file" id="material-file-input" accept="image/png" style="display: none;">
+                    <div id="materials-list" class="materials-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>操作</h3>
+                    <button id="clear-canvas-btn" class="btn btn-danger">
+                        <span>🗑️</span> 清空画布
+                    </button>
+                    <button id="download-btn" class="btn btn-success">
+                        <span>💾</span> 下载拼贴
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>在线用户</h3>
+                    <div id="online-users" class="online-users">
+                        <div class="empty">暂无其他用户</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <main class="canvas-area">
+                <div class="canvas-container">
+                    <canvas id="collage-canvas" width="1920" height="1080"></canvas>
+                    <div id="canvas-overlay" class="canvas-overlay"></div>
+                </div>
+                <div class="canvas-info">
+                    <span>画布尺寸: 1920 × 1080</span>
+                    <span id="material-count">素材数量: 0</span>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/canvas.js"></script>
+    <script src="/js/collage.js"></script>
+    <script src="/js/socket-client.js"></script>
+    <script src="/js/download.js"></script>
+
+    <!-- Main App Script -->
+    <script>
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            // User connection
+            const nicknameInput = document.getElementById('nickname-input');
+            const colorPicker = document.getElementById('color-picker');
+            const connectBtn = document.getElementById('connect-btn');
+            const connectionStatus = document.getElementById('connection-status');
+
+            connectBtn.addEventListener('click', () => {
+                const nickname = nicknameInput.value.trim();
+                if (!nickname) {
+                    alert('请输入昵称');
+                    return;
+                }
+                window.userNickname = nickname;
+                window.userColor = colorPicker.value;
+                if (window.socketClient) {
+                    window.socketClient.connect(nickname, colorPicker.value);
+                    connectBtn.disabled = true;
+                    nicknameInput.disabled = true;
+                    colorPicker.disabled = true;
+                }
+            });
+
+            // Generate background
+            const generateBtn = document.getElementById('generate-background-btn');
+            const backgroundLoading = document.getElementById('background-loading');
+            
+            generateBtn.addEventListener('click', async () => {
+                generateBtn.disabled = true;
+                backgroundLoading.style.display = 'block';
+                
+                try {
+                    const response = await fetch('/api/generate-background', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        if (window.canvasManager) {
+                            await window.canvasManager.setBackground(data.imageUrl);
+                            // Notify other users
+                            if (window.socketClient) {
+                                window.socketClient.emitBackgroundChanged(data.imageUrl);
+                            }
+                        }
+                    } else {
+                        // Show user-friendly error message
+                        let errorMsg = data.error || '未知错误';
+                        if (data.errorType === 'insufficient_credit') {
+                            errorMsg = '⚠️ Replicate API 账户余额不足\n\n' + 
+                                      '请访问以下链接充值：\n' +
+                                      'https://replicate.com/account/billing\n\n' +
+                                      '充值后请等待几分钟再试。';
+                        }
+                        alert('生成背景失败\n\n' + errorMsg);
+                    }
+                } catch (error) {
+                    console.error('Error generating background:', error);
+                    alert('生成背景时出错\n\n' + error.message);
+                } finally {
+                    generateBtn.disabled = false;
+                    backgroundLoading.style.display = 'none';
+                }
+            });
+
+            // Upload material
+            const uploadBtn = document.getElementById('upload-material-btn');
+            const fileInput = document.getElementById('material-file-input');
+            
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.type !== 'image/png') {
+                    alert('只支持 PNG 格式');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('material', file);
+
+                try {
+                    const response = await fetch('/api/upload-material', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Reload materials list
+                        if (window.collageManager) {
+                            await window.collageManager.loadMaterials();
+                        }
+                        alert('上传成功!');
+                    } else {
+                        alert('上传失败: ' + (data.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('Error uploading material:', error);
+                    alert('上传时出错: ' + error.message);
+                } finally {
+                    fileInput.value = '';
+                }
+            });
+
+            // Clear canvas
+            const clearBtn = document.getElementById('clear-canvas-btn');
+            clearBtn.addEventListener('click', () => {
+                if (confirm('确定要清空画布吗？')) {
+                    if (window.canvasManager) {
+                        window.canvasManager.clear();
+                    }
+                    if (window.collageManager) {
+                        window.collageManager.clear();
+                    }
+                }
+            });
+
+            // Load materials on startup
+            if (window.collageManager) {
+                window.collageManager.loadMaterials();
+            }
+        });
+    </script>
+</body>
+</html>
+
