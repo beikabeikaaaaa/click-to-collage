@@ -1,5 +1,5 @@
 /**
- * Socket.io Client - Handles real-time communication with server
+ * Socket.io Client
  */
 
 class SocketClient {
@@ -13,7 +13,7 @@ class SocketClient {
   }
 
   /**
-   * Connect to socket server with user info
+   * Connect to server
    */
   connect(nickname, color) {
     if (this.socket && this.socket.connected) {
@@ -34,7 +34,7 @@ class SocketClient {
       // Update connection status
       const statusEl = document.getElementById('connection-status');
       if (statusEl) {
-        statusEl.textContent = '已连接';
+        statusEl.textContent = 'Connected';
         statusEl.className = 'status-indicator connected';
       }
 
@@ -51,7 +51,7 @@ class SocketClient {
       
       const statusEl = document.getElementById('connection-status');
       if (statusEl) {
-        statusEl.textContent = '未连接';
+        statusEl.textContent = 'Not Connected';
         statusEl.className = 'status-indicator';
       }
     });
@@ -87,7 +87,7 @@ class SocketClient {
   }
 
   /**
-   * Handle user operation from socket
+   * Handle user operation
    */
   handleUserOperation(operation) {
     if (!window.collageManager) return;
@@ -162,9 +162,9 @@ class SocketClient {
     if (this.socket && this.socket.connected) {
       // The server should send existing-users on connection
       // For now, we show a simple message
-      onlineUsersEl.innerHTML = '<div class="empty">其他用户的操作会显示在画布上</div>';
+      onlineUsersEl.innerHTML = '<div class="empty">Other users\' actions will appear on canvas</div>';
     } else {
-      onlineUsersEl.innerHTML = '<div class="empty">未连接</div>';
+      onlineUsersEl.innerHTML = '<div class="empty">Not connected</div>';
     }
   }
 

@@ -19,15 +19,15 @@ class ReplicateService {
   }
   
   /**
-   * Check if API token is configured
+   * Check if configured
    */
   isConfigured() {
     return !!this.apiToken;
   }
 
   /**
-   * Generate a random US landscape background image
-   * @returns {Promise<string>} URL of the generated image
+   * Generate background
+   * @returns {Promise<string>} Image URL
    */
   async generateBackground() {
     if (!this.isConfigured()) {
@@ -113,10 +113,10 @@ class ReplicateService {
   }
 
   /**
-   * Download image from URL and save locally (optional)
-   * @param {string} imageUrl - URL of the image
-   * @param {string} filename - Filename to save as
-   * @returns {Promise<string>} Local file path
+   * Download image
+   * @param {string} imageUrl
+   * @param {string} filename
+   * @returns {Promise<string>}
    */
   async downloadImage(imageUrl, filename) {
     try {

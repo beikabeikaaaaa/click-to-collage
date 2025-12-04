@@ -1,5 +1,5 @@
 /**
- * Canvas Manager - Handles canvas initialization, rendering, and basic interactions
+ * Canvas Manager
  */
 
 class CanvasManager {
@@ -25,7 +25,7 @@ class CanvasManager {
   }
 
   /**
-   * Scale canvas to fit container while maintaining aspect ratio
+   * Scale canvas
    */
   scaleCanvas() {
     const container = this.canvas.parentElement;
@@ -43,7 +43,7 @@ class CanvasManager {
   }
 
   /**
-   * Set background image from URL
+   * Set background
    */
   async setBackground(imageUrl) {
     return new Promise((resolve, reject) => {
@@ -75,7 +75,7 @@ class CanvasManager {
   }
 
   /**
-   * Render canvas (background + materials will be added by CollageManager)
+   * Render canvas
    */
   render() {
     // Clear canvas

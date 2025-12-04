@@ -1,5 +1,5 @@
 /**
- * Download Manager - Handles canvas export and download functionality
+ * Download Manager
  */
 
 class DownloadManager {
@@ -9,7 +9,7 @@ class DownloadManager {
   }
 
   /**
-   * Download canvas as PNG with transparent background support
+   * Download as PNG
    */
   downloadAsPNG(filename = 'collage.png') {
     try {
@@ -84,7 +84,7 @@ class DownloadManager {
   }
 
   /**
-   * Get canvas as data URL (for preview or other uses)
+   * Get data URL
    */
   getDataURL(format = 'image/png', quality = 1.0) {
     const canvas = this.canvasManager.getCanvas();

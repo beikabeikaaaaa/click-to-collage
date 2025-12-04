@@ -1,5 +1,5 @@
 /**
- * Collage Manager - Handles material selection, placement, and manipulation
+ * Collage Manager
  */
 
 class CollageManager {
@@ -17,7 +17,7 @@ class CollageManager {
   }
 
   /**
-   * Initialize event listeners for canvas interactions
+   * Initialize event listeners
    */
   initEventListeners() {
     const canvas = this.canvasManager.getCanvas();
@@ -65,7 +65,7 @@ class CollageManager {
   }
 
   /**
-   * Load materials from server
+   * Load materials
    */
   async loadMaterials() {
     try {
@@ -85,13 +85,13 @@ class CollageManager {
   }
 
   /**
-   * Render material list in sidebar
+   * Render material list
    */
   renderMaterialList() {
     const materialsList = document.getElementById('materials-list');
     
     if (this.materialLibrary.length === 0) {
-      materialsList.innerHTML = '<div class="empty">暂无素材，请上传</div>';
+      materialsList.innerHTML = '<div class="empty">No materials yet. Please upload.</div>';
       return;
     }
 
@@ -124,7 +124,7 @@ class CollageManager {
   }
 
   /**
-   * Select a material from library and prepare to add to canvas
+   * Select material from library
    */
   selectMaterialFromLibrary(materialUrl) {
     // Create a preview material that will be added on click
@@ -153,7 +153,7 @@ class CollageManager {
   }
 
   /**
-   * Add material to canvas at specified position
+   * Add material to canvas
    */
   addMaterial(materialUrl, x, y, width = null, height = null) {
     return new Promise((resolve, reject) => {
@@ -211,7 +211,7 @@ class CollageManager {
   }
 
   /**
-   * Handle mouse down event
+   * Handle mouse down
    */
   handleMouseDown(e) {
     const canvas = this.canvasManager.getCanvas();
@@ -245,7 +245,7 @@ class CollageManager {
   }
 
   /**
-   * Handle mouse move event
+   * Handle mouse move
    */
   handleMouseMove(e) {
     const canvas = this.canvasManager.getCanvas();
@@ -286,7 +286,7 @@ class CollageManager {
   }
 
   /**
-   * Handle mouse up event
+   * Handle mouse up
    */
   handleMouseUp(e) {
     if (this.dragging) {
@@ -298,7 +298,7 @@ class CollageManager {
   }
 
   /**
-   * Get material at specified coordinates
+   * Get material at coordinates
    */
   getMaterialAt(x, y) {
     // Check from top to bottom (reverse order for z-index)
@@ -318,7 +318,7 @@ class CollageManager {
   }
 
   /**
-   * Delete material by ID
+   * Delete material
    */
   deleteMaterial(materialId) {
     const index = this.materials.findIndex(m => m.id === materialId);
@@ -334,7 +334,7 @@ class CollageManager {
   }
 
   /**
-   * Render all materials on canvas
+   * Render materials
    */
   render() {
     // First render background
@@ -391,12 +391,12 @@ class CollageManager {
     const materialCountEl = document.getElementById('material-count');
     if (materialCountEl) {
       const ownMaterials = this.materials.filter(m => !m.isGhost);
-      materialCountEl.textContent = `素材数量: ${ownMaterials.length}`;
+      materialCountEl.textContent = `Material Count: ${ownMaterials.length}`;
     }
   }
 
   /**
-   * Add material from external source (e.g., socket event)
+   * Add external material
    */
   addExternalMaterial(materialData, isGhost = false) {
     return new Promise((resolve, reject) => {
@@ -433,7 +433,7 @@ class CollageManager {
   }
 
   /**
-   * Update material position (from socket event)
+   * Update material position
    */
   updateMaterialPosition(materialId, x, y) {
     const material = this.materials.find(m => m.id === materialId);

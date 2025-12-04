@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CollageStates - 在线拼贴工具</title>
+    <title>CollageStates - AI Collage Creation Platform</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -12,10 +12,10 @@
         <header class="header">
             <h1>CollageStates</h1>
             <div class="user-info">
-                <input type="text" id="nickname-input" placeholder="输入昵称" maxlength="20">
+                <input type="text" id="nickname-input" placeholder="Enter Nickname" maxlength="20">
                 <input type="color" id="color-picker" value="#3498db">
-                <button id="connect-btn" class="btn btn-primary">连接</button>
-                <span id="connection-status" class="status-indicator">未连接</span>
+                <button id="connect-btn" class="btn btn-primary">Connect</button>
+                <span id="connection-status" class="status-indicator">Not Connected</span>
             </div>
         </header>
 
@@ -24,40 +24,43 @@
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="tool-section">
-                    <h3>背景</h3>
+                    <h3>Background</h3>
                     <button id="generate-background-btn" class="btn btn-secondary">
-                        <span>🎨</span> 生成背景
+                        <span>🎨</span> Generate Background
                     </button>
                     <div id="background-loading" class="loading" style="display: none;">
-                        生成中...
+                        Generating...
                     </div>
                 </div>
 
                 <div class="tool-section">
-                    <h3>素材库</h3>
+                    <h3>Material Library</h3>
                     <button id="upload-material-btn" class="btn btn-secondary">
-                        <span>📤</span> 上传素材
+                        <span>📤</span> Upload Material
                     </button>
-                    <input type="file" id="material-file-input" accept="image/png" style="display: none;">
+                    <button id="init-materials-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">
+                        <span>🔄</span> Initialize Materials
+                    </button>
+                    <input type="file" id="material-file-input" accept="image/png" multiple style="display: none;">
                     <div id="materials-list" class="materials-list">
-                        <div class="loading">加载中...</div>
+                        <div class="loading">Loading...</div>
                     </div>
                 </div>
 
                 <div class="tool-section">
-                    <h3>操作</h3>
+                    <h3>Actions</h3>
                     <button id="clear-canvas-btn" class="btn btn-danger">
-                        <span>🗑️</span> 清空画布
+                        <span>🗑️</span> Clear Canvas
                     </button>
                     <button id="download-btn" class="btn btn-success">
-                        <span>💾</span> 下载拼贴
+                        <span>💾</span> Download Collage
                     </button>
                 </div>
 
                 <div class="tool-section">
-                    <h3>在线用户</h3>
+                    <h3>Online Users</h3>
                     <div id="online-users" class="online-users">
-                        <div class="empty">暂无其他用户</div>
+                        <div class="empty">No other users available</div>
                     </div>
                 </div>
             </aside>
@@ -69,10 +72,45 @@
                     <div id="canvas-overlay" class="canvas-overlay"></div>
                 </div>
                 <div class="canvas-info">
-                    <span>画布尺寸: 1920 × 1080</span>
-                    <span id="material-count">素材数量: 0</span>
+                    <span>Canvas Size: 1920 × 1080</span>
+                    <span id="material-count">Material Count: 0</span>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Duplicate Files Dialog -->
+    <div id="duplicate-dialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Duplicate Files Detected</h3>
+                <button class="modal-close" onclick="closeDuplicateDialog()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>The following files already exist. Please choose an action:</p>
+                <div id="duplicate-files-list" style="max-height: 400px; overflow-y: auto; margin: 1rem 0;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="selectAllOverwrite()">Overwrite All</button>
+                <button class="btn btn-secondary" onclick="selectAllSkip()">Skip All</button>
+                <button class="btn btn-danger" onclick="closeDuplicateDialog()">Cancel</button>
+                <button class="btn btn-primary" id="confirm-duplicate-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Progress Dialog -->
+    <div id="upload-progress-dialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Progress</h3>
+            </div>
+            <div class="modal-body">
+                <div id="upload-progress-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="close-progress-btn" style="display: none;">Close</button>
+            </div>
         </div>
     </div>
 
@@ -96,7 +134,7 @@
             connectBtn.addEventListener('click', () => {
                 const nickname = nicknameInput.value.trim();
                 if (!nickname) {
-                    alert('请输入昵称');
+                    alert('Please enter a nickname');
                     return;
                 }
                 window.userNickname = nickname;
@@ -136,18 +174,18 @@
                         }
                     } else {
                         // Show user-friendly error message
-                        let errorMsg = data.error || '未知错误';
+                        let errorMsg = data.error || 'Unknown error';
                         if (data.errorType === 'insufficient_credit') {
-                            errorMsg = '⚠️ Replicate API 账户余额不足\n\n' + 
-                                      '请访问以下链接充值：\n' +
+                            errorMsg = 'Replicate API account has insufficient credit\n\n' + 
+                                      'Please visit the following link to add credits:\n' +
                                       'https://replicate.com/account/billing\n\n' +
-                                      '充值后请等待几分钟再试。';
+                                      'Please wait a few minutes after adding credits before trying again.';
                         }
-                        alert('生成背景失败\n\n' + errorMsg);
+                        alert('Failed to generate background\n\n' + errorMsg);
                     }
                 } catch (error) {
                     console.error('Error generating background:', error);
-                    alert('生成背景时出错\n\n' + error.message);
+                    alert('Error generating background\n\n' + error.message);
                 } finally {
                     generateBtn.disabled = false;
                     backgroundLoading.style.display = 'none';
@@ -162,46 +200,42 @@
                 fileInput.click();
             });
 
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+            // Global variables for upload handling (window scope for all functions)
+            window.duplicateFileChoices = {};
+            window.allOverwriteMode = null;
+            window.allSkipMode = null;
 
-                if (file.type !== 'image/png') {
-                    alert('只支持 PNG 格式');
+            fileInput.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+
+                // Filter PNG files only
+                const pngFiles = files.filter(file => file.type === 'image/png');
+                
+                if (pngFiles.length === 0) {
+                    alert('Only PNG format is supported');
+                    fileInput.value = '';
                     return;
                 }
 
-                const formData = new FormData();
-                formData.append('material', file);
-
-                try {
-                    const response = await fetch('/api/upload-material', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        // Reload materials list
-                        if (window.collageManager) {
-                            await window.collageManager.loadMaterials();
-                        }
-                        alert('上传成功!');
-                    } else {
-                        alert('上传失败: ' + (data.error || '未知错误'));
-                    }
-                } catch (error) {
-                    console.error('Error uploading material:', error);
-                    alert('上传时出错: ' + error.message);
-                } finally {
-                    fileInput.value = '';
+                if (pngFiles.length !== files.length) {
+                    alert(`Filtered ${files.length - pngFiles.length} non-PNG file(s)`);
                 }
+
+                // Reset duplicate handling state
+                window.duplicateFileChoices = {};
+                window.allOverwriteMode = null;
+                window.allSkipMode = null;
+
+                // Start batch upload
+                await handleBatchUpload(pngFiles);
+                fileInput.value = '';
             });
 
             // Clear canvas
             const clearBtn = document.getElementById('clear-canvas-btn');
             clearBtn.addEventListener('click', () => {
-                if (confirm('确定要清空画布吗？')) {
+                if (confirm('Are you sure you want to clear the canvas?')) {
                     if (window.canvasManager) {
                         window.canvasManager.clear();
                     }
@@ -215,7 +249,404 @@
             if (window.collageManager) {
                 window.collageManager.loadMaterials();
             }
+
+            // Initialize materials button
+            const initBtn = document.getElementById('init-materials-btn');
+            initBtn.addEventListener('click', async () => {
+                await handleInitMaterials();
+            });
         });
+
+        // Batch upload handler
+        async function handleBatchUpload(files) {
+            showUploadProgressDialog();
+            const progressList = document.getElementById('upload-progress-list');
+            progressList.innerHTML = '';
+
+            let uploadedCount = 0;
+            let skippedCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileItem = createProgressItem(file.name, 'uploading', 'Uploading...');
+                progressList.appendChild(fileItem);
+
+                try {
+                    // Check if we should overwrite based on user's previous choices
+                    let shouldOverwrite = false;
+                    
+                    if (window.allOverwriteMode === true) {
+                        shouldOverwrite = true;
+                    } else if (window.allSkipMode === true) {
+                        updateProgressItem(fileItem, 'skipped', 'Skipped');
+                        skippedCount++;
+                        continue;
+                    } else if (file.name in window.duplicateFileChoices) {
+                        shouldOverwrite = window.duplicateFileChoices[file.name] === 'overwrite';
+                        if (window.duplicateFileChoices[file.name] === 'skip') {
+                            updateProgressItem(fileItem, 'skipped', '已跳过');
+                            skippedCount++;
+                            continue;
+                        }
+                    }
+
+                    const formData = new FormData();
+                    formData.append('material', file);
+                    formData.append('overwrite', shouldOverwrite);
+
+                    const response = await fetch('/api/upload-material', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        updateProgressItem(fileItem, 'success', 'Uploaded');
+                        uploadedCount++;
+                    } else if (data.duplicate && response.status === 409) {
+                        // File exists, need user decision
+                        updateProgressItem(fileItem, 'error', 'File exists');
+                        
+                        // Wait for user decision
+                        const decision = await showDuplicateFileDialog(file.name, data.existingFile);
+                        
+                        if (decision === 'overwrite') {
+                            // Retry with overwrite
+                            formData.set('overwrite', 'true');
+                            const retryResponse = await fetch('/api/upload-material', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const retryData = await retryResponse.json();
+                            if (retryData.success) {
+                                updateProgressItem(fileItem, 'success', 'Uploaded (overwritten)');
+                                uploadedCount++;
+                            } else {
+                                updateProgressItem(fileItem, 'error', 'Upload failed');
+                                errorCount++;
+                            }
+                        } else if (decision === 'skip') {
+                            updateProgressItem(fileItem, 'skipped', 'Skipped');
+                            skippedCount++;
+                        } else {
+                            // Cancelled
+                            updateProgressItem(fileItem, 'error', 'Cancelled');
+                            errorCount++;
+                            break; // Stop uploading
+                        }
+                    } else {
+                        updateProgressItem(fileItem, 'error', data.error || 'Upload failed');
+                        errorCount++;
+                    }
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                    updateProgressItem(fileItem, 'error', 'Upload error: ' + error.message);
+                    errorCount++;
+                }
+            }
+
+            // Show summary and close button
+            const closeBtn = document.getElementById('close-progress-btn');
+            closeBtn.style.display = 'block';
+            closeBtn.onclick = () => {
+                closeUploadProgressDialog();
+                if (window.collageManager && (uploadedCount > 0 || skippedCount > 0)) {
+                    window.collageManager.loadMaterials();
+                }
+            };
+
+            // Reload materials list if any files were uploaded
+            if (uploadedCount > 0 && window.collageManager) {
+                await window.collageManager.loadMaterials();
+            }
+        }
+
+        // Create progress item
+        function createProgressItem(filename, status, message) {
+            const item = document.createElement('div');
+            item.className = `upload-progress-item ${status}`;
+            item.innerHTML = `
+                <span class="upload-progress-name">${filename}</span>
+                <span class="upload-progress-status ${status}">${message}</span>
+            `;
+            return item;
+        }
+
+        // Update progress item
+        function updateProgressItem(item, status, message) {
+            item.className = `upload-progress-item ${status}`;
+            const statusEl = item.querySelector('.upload-progress-status');
+            statusEl.className = `upload-progress-status ${status}`;
+            statusEl.textContent = message;
+        }
+
+        // Show upload progress dialog
+        function showUploadProgressDialog() {
+            document.getElementById('upload-progress-dialog').style.display = 'block';
+            document.getElementById('close-progress-btn').style.display = 'none';
+        }
+
+        // Close upload progress dialog
+        function closeUploadProgressDialog() {
+            document.getElementById('upload-progress-dialog').style.display = 'none';
+        }
+
+        // Show duplicate file dialog and wait for user decision
+        async function showDuplicateFileDialog(filename, existingFile) {
+            return new Promise((resolve) => {
+                const dialog = document.getElementById('duplicate-dialog');
+                const list = document.getElementById('duplicate-files-list');
+                
+                list.innerHTML = `
+                    <div class="duplicate-file-item">
+                        <span class="duplicate-file-name">${filename}</span>
+                        <div class="duplicate-file-actions">
+                            <button class="btn btn-primary" onclick="selectFileAction('${filename}', 'overwrite')">Overwrite</button>
+                            <button class="btn btn-secondary" onclick="selectFileAction('${filename}', 'skip')">Skip</button>
+                        </div>
+                    </div>
+                `;
+
+                // Reset global state
+                window.currentDuplicateResolution = null;
+                window.allOverwriteMode = null;
+                window.allSkipMode = null;
+
+                // Set up resolution handler
+                window.resolveDuplicate = (action) => {
+                    resolve(action);
+                    dialog.style.display = 'none';
+                };
+
+                // Show dialog
+                dialog.style.display = 'block';
+            });
+        }
+
+        // Handle file action selection
+        window.selectFileAction = function(filename, action) {
+            window.resolveDuplicate(action);
+        };
+
+        // Select all overwrite
+        window.selectAllOverwrite = function() {
+            window.allOverwriteMode = true;
+            window.resolveDuplicate('overwrite');
+        };
+
+        // Select all skip
+        window.selectAllSkip = function() {
+            window.allSkipMode = true;
+            window.resolveDuplicate('skip');
+        };
+
+        // Close duplicate dialog
+        window.closeDuplicateDialog = function() {
+            document.getElementById('duplicate-dialog').style.display = 'none';
+            if (window.resolveDuplicate) {
+                window.resolveDuplicate('cancel');
+            }
+        };
+
+        // Initialize materials from click directory
+        async function handleInitMaterials() {
+            const initBtn = document.getElementById('init-materials-btn');
+            initBtn.disabled = true;
+            initBtn.innerHTML = '<span>🔄</span> Scanning...';
+
+            try {
+                // Step 1: Scan click directory
+                const scanResponse = await fetch('/api/init-materials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const scanData = await scanResponse.json();
+                
+                if (!scanData.success) {
+                    alert('Scan failed: ' + scanData.error);
+                    return;
+                }
+
+                if (scanData.files.length === 0) {
+                    alert('No PNG files found in click directory');
+                    return;
+                }
+
+                // Step 2: Show duplicate files dialog if needed
+                const duplicateFiles = scanData.files.filter(f => f.exists);
+                
+                if (duplicateFiles.length > 0) {
+                    // Show dialog for duplicates
+                    const userChoices = await showInitDuplicateDialog(duplicateFiles);
+                    
+                    if (!userChoices) {
+                        // User cancelled
+                        initBtn.disabled = false;
+                        initBtn.innerHTML = '<span>🔄</span> Initialize Materials';
+                        return;
+                    }
+
+                    // Prepare files with user choices
+                    const filesToProcess = scanData.files.map(file => ({
+                        source: file.source,
+                        overwrite: userChoices[file.source] === 'overwrite' || userChoices[file.source] === 'all-overwrite'
+                    }));
+
+                    // Step 3: Execute copying
+                    await executeInitMaterials(filesToProcess);
+                } else {
+                    // No duplicates, proceed with all files
+                    const filesToProcess = scanData.files.map(file => ({
+                        source: file.source,
+                        overwrite: false
+                    }));
+                    await executeInitMaterials(filesToProcess);
+                }
+
+                // Reload materials
+                if (window.collageManager) {
+                    await window.collageManager.loadMaterials();
+                }
+
+                alert(`Initialization complete!\nTotal: ${scanData.summary.total} files\nNew: ${scanData.summary.new} files\nDuplicates: ${scanData.summary.duplicates} files`);
+
+            } catch (error) {
+                console.error('Error initializing materials:', error);
+                alert('Initialization failed: ' + error.message);
+            } finally {
+                initBtn.disabled = false;
+                initBtn.innerHTML = '<span>🔄</span> 初始化素材';
+            }
+        }
+
+        // Show duplicate dialog for initialization
+        async function showInitDuplicateDialog(duplicateFiles) {
+            return new Promise((resolve) => {
+                const dialog = document.getElementById('duplicate-dialog');
+                const list = document.getElementById('duplicate-files-list');
+                
+                let choices = {};
+                let allOverwrite = false;
+                let allSkip = false;
+
+                list.innerHTML = duplicateFiles.map(file => `
+                    <div class="duplicate-file-item" id="file-${file.source}">
+                        <span class="duplicate-file-name">${file.source}</span>
+                        <div class="duplicate-file-actions">
+                            <button class="btn btn-primary" onclick="selectInitFileAction('${file.source}', 'overwrite')">Overwrite</button>
+                            <button class="btn btn-secondary" onclick="selectInitFileAction('${file.source}', 'skip')">Skip</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Set up handlers
+                window.selectInitFileAction = function(source, action) {
+                    choices[source] = action;
+                    const item = document.getElementById(`file-${source}`);
+                    if (action === 'overwrite') {
+                        item.classList.add('selected-overwrite');
+                        item.classList.remove('selected-skip');
+                    } else {
+                        item.classList.add('selected-skip');
+                        item.classList.remove('selected-overwrite');
+                    }
+                };
+
+                window.selectAllOverwriteInit = function() {
+                    allOverwrite = true;
+                    allSkip = false;
+                    duplicateFiles.forEach(file => {
+                        choices[file.source] = 'all-overwrite';
+                        const item = document.getElementById(`file-${file.source}`);
+                        item.classList.add('selected-overwrite');
+                        item.classList.remove('selected-skip');
+                    });
+                };
+
+                window.selectAllSkipInit = function() {
+                    allSkip = true;
+                    allOverwrite = false;
+                    duplicateFiles.forEach(file => {
+                        choices[file.source] = 'skip';
+                        const item = document.getElementById(`file-${file.source}`);
+                        item.classList.add('selected-skip');
+                        item.classList.remove('selected-overwrite');
+                    });
+                };
+
+                window.confirmInitDialog = function() {
+                    dialog.style.display = 'none';
+                    if (allOverwrite) {
+                        // Set all to overwrite
+                        const finalChoices = {};
+                        duplicateFiles.forEach(file => {
+                            finalChoices[file.source] = 'overwrite';
+                        });
+                        resolve(finalChoices);
+                    } else if (allSkip) {
+                        // Set all to skip
+                        const finalChoices = {};
+                        duplicateFiles.forEach(file => {
+                            finalChoices[file.source] = 'skip';
+                        });
+                        resolve(finalChoices);
+                    } else {
+                        resolve(choices);
+                    }
+                };
+
+                window.cancelInitDialog = function() {
+                    dialog.style.display = 'none';
+                    resolve(null);
+                };
+
+                // Update confirm button
+                const confirmBtn = document.getElementById('confirm-duplicate-btn');
+                confirmBtn.onclick = window.confirmInitDialog;
+                confirmBtn.textContent = 'Confirm';
+
+                // Update footer buttons
+                const footer = document.querySelector('#duplicate-dialog .modal-footer');
+                footer.innerHTML = `
+                    <button class="btn btn-secondary" onclick="selectAllOverwriteInit()">Overwrite All</button>
+                    <button class="btn btn-secondary" onclick="selectAllSkipInit()">Skip All</button>
+                    <button class="btn btn-danger" onclick="cancelInitDialog()">Cancel</button>
+                    <button class="btn btn-primary" id="confirm-duplicate-btn">Confirm</button>
+                `;
+                document.getElementById('confirm-duplicate-btn').onclick = window.confirmInitDialog;
+
+                dialog.style.display = 'block';
+            });
+        }
+
+        // Execute materials initialization
+        async function executeInitMaterials(files) {
+            try {
+                const response = await fetch('/api/init-materials/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ files })
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Execution failed');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('Error executing initialization:', error);
+                throw error;
+            }
+        }
     </script>
 </body>
 </html>

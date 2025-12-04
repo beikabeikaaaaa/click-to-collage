@@ -1,5 +1,5 @@
 /**
- * Socket.io event handler for real-time collaboration
+ * Socket.io event handler
  */
 
 // Store connected users
